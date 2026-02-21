@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Life - Connection Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold mb-6 text-blue-600">🔧 Campus Life Diagnostic Test</h1>
+            
+            <div id="results" class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded">
+                    <p class="font-semibold">🌐 Frontend Info</p>
+                    <p class="text-sm text-gray-600">URL: <span id="fe-url" class="font-mono"></span></p>
+                    <p class="text-sm text-gray-600">Hostname: <span id="fe-host" class="font-mono"></span></p>
+                </div>
+                
+                <div id="api-test" class="bg-yellow-50 p-4 rounded">
+                    <p class="font-semibold">🔌 API Connection Test...</p>
+                    <div id="api-result" class="text-sm text-gray-600 mt-2"></div>
+                </div>
+                
+                <div id="auth-test" class="bg-purple-50 p-4 rounded" style="display:none;">
+                    <p class="font-semibold">📝 Registration Test...</p>
+                    <div id="auth-result" class="text-sm text-gray-600 mt-2"></div>
+                </div>
+            </div>
+            
+            <button onclick="location.href='/'" class="mt-6 bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700">
+                ← Back to App
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('fe-url').textContent = window.location.href;
+        document.getElementById('fe-host').textContent = window.location.hostname;
+        
+        // Determine API URL
+        const API_URL = (() => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            if (window.location.hostname.includes('nodeops.app')) {
+                return `http://${window.location.hostname.split('.').slice(-3).join('.')}:3000`;
+            }
+            return `http://${window.location.hostname}:3000`;
+        })();
+        
+        console.log('Testing API URL:', API_URL);
+        
+        // Test API health
+        fetch(`${API_URL}/api/health`)
+            .then(r => {
+                if (r.ok) return r.json();
+                throw new Error(`HTTP ${r.status}`);
+            })
+            .then(data => {
+                document.getElementById('api-result').innerHTML = `
+                    ✅ <strong>Connected!</strong><br>
+                    API URL: <span class="font-mono">${API_URL}</span><br>
+                    Status: ${data.status}<br>
+                    Time: ${new Date(data.timestamp).toLocaleString()}
+                `;
+                document.getElementById('auth-test').style.display = 'block';
+                testAuth();
+            })
+            .catch(err => {
+                document.getElementById('api-result').innerHTML = `
+                    ❌ <strong>Failed!</strong><br>
+                    Error: ${err.message}<br>
+                    Tried: <span class="font-mono">${API_URL}</span><br>
+                    <small>Make sure backend is running on port 3000</small>
+                `;
+            });
+        
+        // Test registration
+        function testAuth() {
+            const API_URL = (() => {
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return 'http://localhost:3000';
+                }
+                return `http://${window.location.hostname.split('.').slice(-3).join('.')}:3000`;
+            })();
+            
+            const email = `test${Date.now()}@uni.edu`;
+            const username = `user${Date.now()}`;
+            const password = 'test123';
+            
+            fetch(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, username, password })
+            })
+            .then(r => {
+                if (r.ok) return r.json();
+                throw new Error(`HTTP ${r.status}`);
+            })
+            .then(data => {
+                document.getElementById('auth-result').innerHTML = `
+                    ✅ <strong>Registration Works!</strong><br>
+                    Test Account: <span class="font-mono">${email}</span><br>
+                    Token: <span class="font-mono">${data.token.substring(0, 20)}...</span><br>
+                    <small>You can now use this account to login in the app!</small>
+                `;
+            })
+            .catch(err => {
+                document.getElementById('auth-result').innerHTML = `
+                    ❌ <strong>Registration Failed!</strong><br>
+                    Error: ${err.message}
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
